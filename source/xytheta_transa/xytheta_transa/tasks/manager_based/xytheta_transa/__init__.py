@@ -13,31 +13,11 @@ from . import agents
 
 
 gym.register(
-    id="Template-Xytheta-Transa-v0",
+    id="Xytheta-Transa-v0.0",
     entry_point="isaaclab.envs:ManagerBasedRLEnv",
     disable_env_checker=True,
     kwargs={
         "env_cfg_entry_point": f"{__name__}.xytheta_transa_env_cfg:XythetaTransaEnvCfg",
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
-    },
-)
-
-gym.register(
-    id="Xytheta-Transa-v0",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.xytheta_transa_env_cfg:XythetaTransaEnvCfg",
-        "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
-    },
-)
-
-gym.register(
-    id="Xytheta-Transa-v1",
-    entry_point="isaaclab.envs:ManagerBasedRLEnv",
-    disable_env_checker=True,
-    kwargs={
-        "env_cfg_entry_point": f"{__name__}.xytheta_transa_env_cfg:XythetaTransaEnvCfgV1",
         "rl_games_cfg_entry_point": f"{agents.__name__}:rl_games_ppo_cfg.yaml",
     },
 )

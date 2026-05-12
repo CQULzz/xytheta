@@ -298,14 +298,6 @@ class EventCfg:
 
 @configclass
 class RewardsCfg:
-    """Reward terms for simple free-driving experiments."""
-
-    alive = RewTerm(func=mdp.is_alive, weight=1.0)
-    terminating = RewTerm(func=mdp.is_terminated, weight=-2.0)
-
-
-@configclass
-class RewardsCfgV1:
     """Reward terms for exploration-driven LiDAR coverage."""
 
     exploration = RewTerm(
@@ -369,10 +361,3 @@ class XythetaTransaEnvCfg(ManagerBasedRLEnvCfg):
         self.viewer.lookat = (0.0, 0.0, 0.0)
         self.sim.dt = 1 / 60
         self.sim.render_interval = self.decimation
-
-
-@configclass
-class XythetaTransaEnvCfgV1(XythetaTransaEnvCfg):
-    """Exploration-reward variant of the base three-car LiDAR environment."""
-
-    rewards: RewardsCfgV1 = RewardsCfgV1()

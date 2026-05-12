@@ -2,14 +2,14 @@
 
 ## 高优先级
 
-- [ ] 确认 GitHub remote，并建立 `main`、`dev` 分支。
-- [ ] 在 `dev` 分支完成首次项目管理文档提交。
-- [ ] 检查是否有日志、模型、数据文件被误加入 Git index。
-- [ ] 为 v0/v1 添加最小 smoke test 说明。
+- [x] 确认 GitHub remote，并建立 `main`、`dev` 分支。
+- [x] 完成首次项目代码和项目管理文档提交。
+- [x] 检查是否有日志、模型、数据文件被误加入 Git index。
+- [ ] 为 `Xytheta-Transa-v0.0` 添加最小 smoke test 说明。
 
 ## 中优先级
 
-- [ ] 记录一次 v1 reward-guided baseline 实验。
+- [ ] 记录一次 `Xytheta-Transa-v0.0` reward-guided baseline 实验。
 - [ ] 对比 random、demo、reward-guided 三种 rollout 的探索面积曲线。
 - [ ] 梳理 PPO 训练命令和配置文件说明。
 - [ ] 规范实验输出目录命名。

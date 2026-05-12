@@ -1,10 +1,10 @@
 Changelog
 ---------
 
-0.1.0 (2026-05-07)
-~~~~~~~~~~~~~~~~~~
+0.0 (2026-05-12)
+~~~~~~~~~~~~~~~~
 
 Added
 ^^^^^
 
-* Created an initial template for building an extension or project based on Isaac Lab
+* Created the current ``Xytheta-Transa-v0.0`` Isaac Lab extension baseline.

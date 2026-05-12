@@ -92,12 +92,12 @@ Avoid vague messages:
 
 ## Versioning Rules
 
-Use semantic versioning:
+Use lightweight version tags during the early prototype stage:
 
-- `v0.1.0`: initial runnable version
-- `v0.2.0`: important new feature
-- `v0.2.1`: small fix
-- `v1.0.0`: stable milestone
+- `v0.0`: current initial runnable baseline
+- `v0.1`: important new feature
+- `v0.1.1`: small fix
+- `v0.9`: larger milestone before a stable public release
 
 Rules:
 
@@ -112,8 +112,8 @@ Example:
 ```bash
 git checkout main
 git pull
-git tag -a v0.1.0 -m "Release v0.1.0"
-git push origin v0.1.0
+git tag -a v0.0 -m "Release v0.0"
+git push origin v0.0
 ```
 
 ## Experiment Records

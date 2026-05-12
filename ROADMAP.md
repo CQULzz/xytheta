@@ -14,19 +14,19 @@
 
 ## Phase 1: 基础环境稳定
 
-- [x] 保留 `Xytheta-Transa-v0`
-- [x] 新增 `Xytheta-Transa-v1`
+- [x] 建立当前基线任务 `Xytheta-Transa-v0.0`
+- [x] 加入探索奖励、靠墙惩罚和出界终止惩罚
 - [ ] 梳理环境参数配置方式
 - [ ] 补充最小 smoke test 文档
 - [ ] 确认多环境 `num_envs` 下 CSV 记录稳定
 
-可交付结果：v0/v1 都能稳定启动，环境配置和运行方式明确。
+可交付结果：`Xytheta-Transa-v0.0` 能稳定启动，环境配置和运行方式明确。
 
 当前优先级：高。
 
 ## Phase 2: 实验与奖励优化
 
-- [ ] 记录 v1 reward-guided rollout 基线
+- [ ] 记录 `Xytheta-Transa-v0.0` reward-guided rollout 基线
 - [ ] 对比 random、demo、reward-guided、PPO policy
 - [ ] 调整探索奖励网格分辨率、LiDAR 参数和靠墙惩罚权重
 - [ ] 形成实验日志和结果图表

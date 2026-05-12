@@ -1,21 +1,13 @@
 Version Diary
 =============
 
-v0
---
-- Task id: Xytheta-Transa-v0.
-- Base three-car LiDAR arena with simple obstacles and walls.
-- Reward uses alive bonus plus termination penalty.
-- Exploration CSV logging and plotting are external evaluation utilities, not part of the v0 reward.
-
-v1
---
-- Task id: Xytheta-Transa-v1.
-- Keeps v0 registered and available.
-- Reuses the v0 scene, actions, observations, resets, and terminations.
-- Replaces the v0 alive reward with exploration reward:
-  reward is the newly LiDAR-covered, previously unexplored area for each car, summed over cars.
+v0.0
+----
+- Task id: Xytheta-Transa-v0.0.
+- Current baseline three-car LiDAR arena with simple obstacles and walls.
+- Reward uses newly LiDAR-covered, previously unexplored area for each car, summed over cars.
 - Each car keeps its own explored grid, so one car's explored area does not affect another car.
 - Adds wall proximity penalty to discourage driving near arena bounds before termination.
 - Keeps a stronger termination penalty for out-of-bounds termination.
 - Adds a reward-guided rollout mode in random_agent.py through --reward_guided.
+- Exploration CSV logging and plotting are external evaluation utilities.

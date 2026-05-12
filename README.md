@@ -13,15 +13,12 @@ This repository contains an Isaac Lab extension for simulating multiple planar c
 
 ## Current Features
 
-- `Xytheta-Transa-v0`
+- `Xytheta-Transa-v0.0`
   - Three planar cars with LiDAR sensors.
   - Simple wall and obstacle arena.
-  - Alive reward plus termination penalty.
-  - Random, fixed demo, and zero-action rollout scripts.
-- `Xytheta-Transa-v1`
-  - Keeps v0 available.
   - Adds exploration reward based on newly LiDAR-covered, previously unexplored area.
   - Adds wall proximity penalty and stronger termination penalty.
+  - Random, fixed demo, reward-guided, and zero-action rollout scripts.
 - Exploration CSV logging in `scripts/random_agent.py`.
 - Optional per-environment CSV splitting for vectorized runs.
 - Version notes in `VerDairy`.
@@ -60,31 +57,31 @@ List available tasks:
 python scripts/list_envs.py
 ```
 
-Run v0 with random actions:
+Run the current environment with random actions:
 
 ```bash
 python scripts/random_agent.py \
-  --task Xytheta-Transa-v0 \
+  --task Xytheta-Transa-v0.0 \
   --num_envs 1 \
   --disable_fabric
 ```
 
-Run v1 with reward-guided exploration:
+Run the current environment with reward-guided exploration:
 
 ```bash
 python scripts/random_agent.py \
-  --task Xytheta-Transa-v1 \
+  --task Xytheta-Transa-v0.0 \
   --num_envs 1 \
   --disable_fabric \
   --reward_guided \
-  --exploration_csv logs/exploration/v1_reward_guided.csv
+  --exploration_csv logs/exploration/v0_0_reward_guided.csv
 ```
 
-Run v1 headless for a short smoke test:
+Run a headless short smoke test:
 
 ```bash
 python scripts/random_agent.py \
-  --task Xytheta-Transa-v1 \
+  --task Xytheta-Transa-v0.0 \
   --num_envs 1 \
   --headless \
   --disable_fabric \
@@ -95,7 +92,7 @@ Split exploration CSV output by environment:
 
 ```bash
 python scripts/random_agent.py \
-  --task Xytheta-Transa-v1 \
+  --task Xytheta-Transa-v0.0 \
   --num_envs 8 \
   --disable_fabric \
   --split_exploration_csv_by_env \

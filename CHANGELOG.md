@@ -6,25 +6,30 @@ This project follows a lightweight Keep a Changelog style.
 
 ### Added
 
-- Added project management documents: README, ROADMAP, TODO, CHANGELOG, branch strategy, and experiment log template.
-- Added GitHub issue and pull request templates.
+- None.
 
 ### Changed
 
-- Replaced the default Isaac Lab template README with a project-specific README.
-- Expanded `.gitignore` for experiment outputs, model files, logs, datasets, and credentials.
+- None.
 
 ### Fixed
 
 - None.
 
-## [v0.1.0] - 2026-05-12
+## [v0.0] - 2026-05-12
 
 ### Added
 
 - Added Isaac Lab extension project structure.
-- Added `Xytheta-Transa-v0` environment.
-- Added `Xytheta-Transa-v1` exploration reward variant.
+- Added `Xytheta-Transa-v0.0` environment.
+- Added exploration reward based on newly LiDAR-covered, previously unexplored area.
+- Added wall proximity penalty and stronger termination penalty.
 - Added random, demo, and reward-guided rollout support.
 - Added exploration CSV logging support.
 - Added `VerDairy` version diary.
+- Added project management documents, GitHub issue templates, and pull request template.
+
+### Changed
+
+- Replaced the default Isaac Lab template README with a project-specific README.
+- Expanded `.gitignore` for experiment outputs, model files, logs, datasets, and credentials.
