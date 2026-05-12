@@ -66,6 +66,17 @@ class PlanarVelocityAction(ActionTerm):
 
         if isinstance(self._asset, RigidObject):
             yaw_w = euler_xyz_from_quat(self._asset.data.root_quat_w)[2]
+            zeros = torch.zeros_like(yaw_w)
+            root_pose_w = torch.cat(
+                (
+                    self._asset.data.root_pos_w[:, :2],
+                    self._asset.data.default_root_state[:, 2:3] + self._env.scene.env_origins[:, 2:3],
+                    quat_from_euler_xyz(zeros, zeros, yaw_w),
+                ),
+                dim=-1,
+            )
+            self._asset.write_root_pose_to_sim(root_pose_w)
+
             root_vel_w = torch.zeros_like(self._asset.data.root_vel_w)
             root_vel_w[:, 0] = torch.cos(yaw_w) * forward_vel
             root_vel_w[:, 1] = torch.sin(yaw_w) * forward_vel

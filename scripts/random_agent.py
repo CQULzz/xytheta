@@ -63,7 +63,7 @@ import torch
 
 import isaaclab_tasks  # noqa: F401
 from isaaclab.sim.views import XformPrimView
-from isaaclab.utils.math import euler_xyz_from_quat
+from isaaclab.utils.math import euler_xyz_from_quat, quat_from_euler_xyz
 from isaaclab_tasks.utils import parse_env_cfg
 
 import xytheta_transa.tasks  # noqa: F401
@@ -247,11 +247,16 @@ class RewardGuidedExplorer:
             -math.pi, math.pi, sector_count + 1, device=self.device, dtype=torch.float32
         )[:-1]
         self.heading_dirs = torch.stack((torch.cos(self.heading_angles), torch.sin(self.heading_angles)), dim=-1)
+        self.blocked_steps = torch.zeros(self.num_envs, self.num_cars, dtype=torch.long, device=self.device)
+        self.recovery_steps = torch.zeros_like(self.blocked_steps)
+        self.recovery_turn = torch.ones(self.num_envs, self.num_cars, dtype=torch.float32, device=self.device)
 
     def compute_actions(self, done: torch.Tensor | None = None) -> torch.Tensor:
         if done is not None and torch.any(done):
             done_ids = torch.nonzero(done, as_tuple=False).flatten()
             self.explored[done_ids] = False
+            self.blocked_steps[done_ids] = 0
+            self.recovery_steps[done_ids] = 0
 
         self.explored |= self._current_visible_grid()
         actions = torch.zeros(self.env.num_envs, self.num_cars * 2, device=self.device)
@@ -265,13 +270,26 @@ class RewardGuidedExplorer:
                 yaw_action = torch.clamp(heading_error / 1.0, -1.0, 1.0)
                 forward_action = torch.where(torch.abs(heading_error) < 0.75, 0.85, 0.25)
 
+                if self.recovery_steps[env_id, car_id] > 0:
+                    self.recovery_steps[env_id, car_id] -= 1
+                    actions[env_id, 2 * car_id] = -0.45
+                    actions[env_id, 2 * car_id + 1] = self.recovery_turn[env_id, car_id]
+                    continue
+
                 distance_to_wall = self._distance_to_wall(car_xy[env_id])
                 if distance_to_wall < 0.8:
                     yaw_action = self._turn_toward_arena_center(car_xy[env_id], yaw[env_id])
                     forward_action = torch.tensor(0.25, device=self.device)
                 if front_clearance < 0.65:
+                    self.blocked_steps[env_id, car_id] += 1
                     yaw_action = turn_bias
                     forward_action = torch.tensor(0.0, device=self.device)
+                    if front_clearance < 0.4 or self.blocked_steps[env_id, car_id] > 10:
+                        self.recovery_steps[env_id, car_id] = 18
+                        self.recovery_turn[env_id, car_id] = turn_bias
+                        forward_action = torch.tensor(-0.45, device=self.device)
+                else:
+                    self.blocked_steps[env_id, car_id] = 0
 
                 actions[env_id, 2 * car_id] = forward_action
                 actions[env_id, 2 * car_id + 1] = yaw_action
@@ -426,6 +444,26 @@ def main():
             )
         env.unwrapped.sim.render()
 
+    def project_cars_to_planar_pose():
+        for car_id in range(3):
+            car = env.unwrapped.scene[f"car_{car_id}"]
+            yaw = euler_xyz_from_quat(car.data.root_quat_w)[2]
+            zeros = torch.zeros_like(yaw)
+            root_pose_w = torch.cat(
+                (
+                    car.data.root_pos_w[:, :2],
+                    car.data.default_root_state[:, 2:3] + env.unwrapped.scene.env_origins[:, 2:3],
+                    quat_from_euler_xyz(zeros, zeros, yaw),
+                ),
+                dim=-1,
+            )
+            root_vel_w = car.data.root_vel_w.clone()
+            root_vel_w[:, 2] = 0.0
+            root_vel_w[:, 3:5] = 0.0
+            car.write_root_pose_to_sim(root_pose_w)
+            car.write_root_velocity_to_sim(root_vel_w)
+
+    project_cars_to_planar_pose()
     sync_car_visuals_to_usd()
     reward_guided_agent = None
     if args_cli.reward_guided:
@@ -474,6 +512,7 @@ def main():
                     actions = 2 * torch.rand(env.action_space.shape, device=env.unwrapped.device) - 1
                 # apply actions
                 _, _, terminated, truncated, _ = env.step(actions)
+                project_cars_to_planar_pose()
                 sync_car_visuals_to_usd()
                 next_step_count = step_count + 1
                 if exploration_logger is not None:

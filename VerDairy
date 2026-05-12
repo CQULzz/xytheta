@@ -1,13 +1,40 @@
-Version Diary
-=============
+版本日记
+========
 
 v0.0
 ----
-- Task id: Xytheta-Transa-v0.0.
-- Current baseline three-car LiDAR arena with simple obstacles and walls.
-- Reward uses newly LiDAR-covered, previously unexplored area for each car, summed over cars.
-- Each car keeps its own explored grid, so one car's explored area does not affect another car.
-- Adds wall proximity penalty to discourage driving near arena bounds before termination.
-- Keeps a stronger termination penalty for out-of-bounds termination.
-- Adds a reward-guided rollout mode in random_agent.py through --reward_guided.
-- Exploration CSV logging and plotting are external evaluation utilities.
+- 任务 ID：`Xytheta-Transa-v0.0`。
+- 当前初始基线版本：三辆带 LiDAR 的平面小车，在带墙和简单障碍物的场地中运动。
+- 奖励函数以“每辆车 LiDAR 当前新增覆盖的未探索面积”为主。
+- 每辆车维护独立的已探索地图，A 车探索过的区域不会算到 B 车头上。
+- 加入靠近边界的惩罚，鼓励小车不要贴墙。
+- 加入出界终止惩罚。
+- `random_agent.py` 支持 `--reward_guided`，可以运行一个简单的贪婪探索控制器。
+- `random_agent.py` 支持探索面积 CSV 记录；绘图和实验输出放在 `logs/` 下，不提交到 GitHub。
+
+v0.1-greedy-recovery
+--------------------
+- 任务 ID 仍然是：`Xytheta-Transa-v0.0`。
+- Git tag：`v0.1-greedy-recovery`。
+- 这一版重点修复“简单的贪婪算法探索策略”在障碍物附近容易卡住、刚体小车容易翻车的问题。
+- 在 `random_agent.py` 的 `RewardGuidedExplorer` 中加入堵塞检测：
+  - `blocked_steps` 记录某辆车连续被前方障碍挡住的 step 数。
+  - `recovery_steps` 记录当前是否处于倒车脱困状态。
+  - `recovery_turn` 记录倒车时应该向哪边转。
+- 贪婪策略的安全逻辑更新为：
+  - 前方 LiDAR 距离小于 `0.65 m` 时，停止前进并向更空的一侧转向。
+  - 前方 LiDAR 距离小于 `0.4 m`，或连续堵塞超过 10 个 step 时，进入倒车脱困。
+  - 倒车脱困持续 18 个 step，动作约为“倒车 + 转向”。
+- 在 `mdp/actions.py` 中加入平面车辆约束：
+  - 每次给刚体小车写速度前，把姿态投影回 `roll=0, pitch=0, yaw=当前 yaw`。
+  - 同时把 z 高度恢复到初始高度，避免碰撞力矩把车掀翻。
+- 在 `random_agent.py` 中，`env.step()` 后、GUI 同步前也会把三辆车投影回平面，保证画面中的车不会显示为翻倒状态。
+- 已用 headless 方式完成随机策略和贪婪策略各 600 秒仿真时间的对比实验：
+  - 随机策略 CSV：`logs/exploration/strategy_compare_20260513_011227/random_10min.csv`
+  - 贪婪策略 CSV：`logs/exploration/strategy_compare_20260513_011227/greedy_10min.csv`
+  - 对比图：`logs/exploration/strategy_compare_20260513_011227/random_vs_greedy_episode_relative.png`
+  - 这些实验输出位于 `logs/`，用于本地分析，不提交到 GitHub。
+- 在这次 600 秒对比中，按 episode 内相对时间统计三辆车总已探索面积，贪婪策略明显高于随机策略：
+  - 5.0 秒：随机约 `21.025 m^2`，贪婪约 `23.441 m^2`。
+  - 20.0 秒：随机约 `34.176 m^2`，贪婪约 `43.054 m^2`。
+  - 44.5 秒：随机约 `50.370 m^2`，贪婪约 `73.240 m^2`。
