@@ -130,8 +130,10 @@ def wall_proximity_penalty(
     penalty = torch.zeros(env.num_envs, device=env.device)
     for car_name in car_names:
         asset = env.scene[car_name]
-        if not isinstance(asset, RigidObject):
-            raise TypeError(f"wall_proximity_penalty expected a RigidObject for '{car_name}', got {type(asset)}.")
+        if not isinstance(asset, (Articulation, RigidObject)):
+            raise TypeError(
+                f"wall_proximity_penalty expected an Articulation or RigidObject for '{car_name}', got {type(asset)}."
+            )
         pos_xy = asset.data.root_pos_w[:, :2] - env.scene.env_origins[:, :2]
         distance_to_wall = torch.minimum(
             torch.minimum(pos_xy[:, 0] - xmin, xmax - pos_xy[:, 0]),

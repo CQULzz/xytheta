@@ -25,6 +25,7 @@ INSTALL_REQUIRES = [
 setup(
     name="xytheta_transa",
     packages=find_packages(),
+    package_data={"xytheta_transa": ["assets/*.urdf"]},
     author=EXTENSION_TOML_DATA["package"]["author"],
     maintainer=EXTENSION_TOML_DATA["package"]["maintainer"],
     url=EXTENSION_TOML_DATA["package"]["repository"],

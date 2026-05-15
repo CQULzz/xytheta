@@ -62,6 +62,7 @@ import gymnasium as gym
 import torch
 
 import isaaclab_tasks  # noqa: F401
+from isaaclab.assets import RigidObject
 from isaaclab.sim.views import XformPrimView
 from isaaclab.utils.math import euler_xyz_from_quat, quat_from_euler_xyz
 from isaaclab_tasks.utils import parse_env_cfg
@@ -74,6 +75,38 @@ def _wrap_to_pi(angle: torch.Tensor) -> torch.Tensor:
     return torch.atan2(torch.sin(angle), torch.cos(angle))
 
 
+def _scene_has(env, name: str) -> bool:
+    try:
+        _ = env.unwrapped.scene[name]
+    except KeyError:
+        return False
+    return True
+
+
+def _discover_numbered_scene_names(env, prefix: str, configured_names: tuple[str, ...] | None = None) -> tuple[str, ...]:
+    if configured_names:
+        return tuple(name for name in configured_names if _scene_has(env, name))
+    names = []
+    for index in range(32):
+        name = f"{prefix}_{index}"
+        if _scene_has(env, name):
+            names.append(name)
+    return tuple(names)
+
+
+def _runtime_env_settings(env) -> tuple[tuple[str, ...], tuple[str, ...], tuple[float, float, float, float], float]:
+    cfg = env.unwrapped.cfg
+    car_names = _discover_numbered_scene_names(env, "car", getattr(cfg, "car_names", None))
+    lidar_names = _discover_numbered_scene_names(env, "lidar", getattr(cfg, "lidar_names", None))
+    if not car_names:
+        raise RuntimeError("No car assets found. Expected scene entities named car_0, car_1, ... or cfg.car_names.")
+    if len(lidar_names) < len(car_names):
+        raise RuntimeError(f"Expected at least one LiDAR per car, got cars={car_names}, lidars={lidar_names}.")
+    bounds = getattr(cfg, "arena_bounds", ARENA_BOUNDS)
+    lidar_max_distance = getattr(cfg, "lidar_max_distance", LIDAR_MAX_DISTANCE)
+    return car_names, lidar_names[: len(car_names)], bounds, lidar_max_distance
+
+
 class ExplorationCsvLogger:
     """Track per-car explored 2D area and write area-vs-time rows to CSV."""
 
@@ -81,6 +114,7 @@ class ExplorationCsvLogger:
         self,
         env,
         csv_path: str | None,
+        lidar_names: tuple[str, ...],
         bounds: tuple[float, float, float, float],
         grid_resolution: float,
         robot_radius: float,
@@ -91,7 +125,8 @@ class ExplorationCsvLogger:
         self.env = env.unwrapped
         self.device = self.env.device
         self.num_envs = self.env.num_envs
-        self.num_cars = 3
+        self.lidar_names = lidar_names
+        self.num_cars = len(lidar_names)
         self.xmin, self.xmax, self.ymin, self.ymax = bounds
         self.grid_resolution = grid_resolution
         self.robot_radius = robot_radius
@@ -178,8 +213,8 @@ class ExplorationCsvLogger:
         ray_samples = torch.linspace(0.0, self.lidar_max_distance, sample_count, device=self.device)
         env_ids_template = torch.arange(self.num_envs, device=self.device)
 
-        for car_id in range(self.num_cars):
-            sensor = self.env.scene.sensors[f"lidar_{car_id}"]
+        for car_id, lidar_name in enumerate(self.lidar_names):
+            sensor = self.env.scene.sensors[lidar_name]
             _ = sensor.data
             ray_starts_w = sensor._ray_starts_w
             ray_directions_w = sensor._ray_directions_w
@@ -217,6 +252,8 @@ class RewardGuidedExplorer:
     def __init__(
         self,
         env,
+        car_names: tuple[str, ...],
+        lidar_names: tuple[str, ...],
         bounds: tuple[float, float, float, float],
         grid_resolution: float,
         robot_radius: float,
@@ -227,7 +264,9 @@ class RewardGuidedExplorer:
         self.env = env.unwrapped
         self.device = self.env.device
         self.num_envs = self.env.num_envs
-        self.num_cars = 3
+        self.car_names = car_names
+        self.lidar_names = lidar_names
+        self.num_cars = len(car_names)
         self.xmin, self.xmax, self.ymin, self.ymax = bounds
         self.grid_resolution = grid_resolution
         self.robot_radius = robot_radius
@@ -261,7 +300,7 @@ class RewardGuidedExplorer:
         self.explored |= self._current_visible_grid()
         actions = torch.zeros(self.env.num_envs, self.num_cars * 2, device=self.device)
         for car_id in range(self.num_cars):
-            car = self.env.scene[f"car_{car_id}"]
+            car = self.env.scene[self.car_names[car_id]]
             car_xy = car.data.root_pos_w[:, :2] - self.env.scene.env_origins[:, :2]
             yaw = euler_xyz_from_quat(car.data.root_quat_w)[2]
             for env_id in range(self.num_envs):
@@ -318,7 +357,7 @@ class RewardGuidedExplorer:
         return _wrap_to_pi(best_angle - yaw)
 
     def _front_clearance_and_turn_bias(self, env_id: int, car_id: int, yaw: torch.Tensor) -> tuple[float, torch.Tensor]:
-        sensor = self.env.scene.sensors[f"lidar_{car_id}"]
+        sensor = self.env.scene.sensors[self.lidar_names[car_id]]
         _ = sensor.data
         ray_starts_w = sensor._ray_starts_w[env_id]
         ray_directions_w = sensor._ray_directions_w[env_id]
@@ -335,10 +374,11 @@ class RewardGuidedExplorer:
         forward_dot = torch.matmul(directions_xy, forward)
         right_dot = torch.matmul(directions_xy, right)
 
-        front_mask = forward_dot > math.cos(math.radians(35.0))
+        horizontal_mask = torch.abs(ray_directions_w[:, 2]) < math.sin(math.radians(20.0))
+        front_mask = (forward_dot > math.cos(math.radians(35.0))) & horizontal_mask
         front_clearance = hit_distances[front_mask].min().item() if torch.any(front_mask) else self.lidar_max_distance
-        left_mask = (forward_dot > 0.0) & (right_dot < -0.15)
-        right_mask = (forward_dot > 0.0) & (right_dot > 0.15)
+        left_mask = (forward_dot > 0.0) & (right_dot < -0.15) & horizontal_mask
+        right_mask = (forward_dot > 0.0) & (right_dot > 0.15) & horizontal_mask
         left_clearance = hit_distances[left_mask].min() if torch.any(left_mask) else torch.tensor(self.lidar_max_distance, device=self.device)
         right_clearance = hit_distances[right_mask].min() if torch.any(right_mask) else torch.tensor(self.lidar_max_distance, device=self.device)
         turn_bias = torch.where(left_clearance > right_clearance, 0.85, -0.85)
@@ -363,8 +403,8 @@ class RewardGuidedExplorer:
         ray_samples = torch.linspace(0.0, self.robot_radius, sample_count, device=self.device)
         env_ids_template = torch.arange(self.num_envs, device=self.device)
 
-        for car_id in range(self.num_cars):
-            sensor = self.env.scene.sensors[f"lidar_{car_id}"]
+        for car_id, lidar_name in enumerate(self.lidar_names):
+            sensor = self.env.scene.sensors[lidar_name]
             _ = sensor.data
             ray_starts_w = sensor._ray_starts_w
             ray_directions_w = sensor._ray_directions_w
@@ -418,26 +458,34 @@ def main():
     print(f"[INFO]: Gym action space: {env.action_space}")
     # reset environment
     env.reset()
+    car_names, lidar_names, arena_bounds, lidar_max_distance = _runtime_env_settings(env)
+    print(f"[INFO]: Tracking cars={car_names}, lidars={lidar_names}")
     # In some Isaac Sim/Fabric configurations, RigidObject tensors move while the GUI USD prims stay at their
     # authored poses. Mirroring the rigid-body pose to USD keeps the viewport faithful to the physics state.
     visual_sync_views = []
     if env.unwrapped.sim.has_gui() and not args_cli.disable_visual_sync:
-        visual_sync_views = [
-            XformPrimView(
-                f"/World/envs/env_.*/Car_{car_id}",
-                device=env.unwrapped.device,
-                stage=env.unwrapped.scene.stage,
-                sync_usd_on_fabric_write=True,
-            )
-            for car_id in range(3)
-        ]
-        print("[INFO]: Syncing car rigid-body poses back to USD for GUI visualization.")
+        for car_id, car_name in enumerate(car_names):
+            car = env.unwrapped.scene[car_name]
+            if isinstance(car, RigidObject):
+                visual_sync_views.append(
+                    (
+                        car_name,
+                        XformPrimView(
+                            f"/World/envs/env_.*/Car_{car_id}",
+                            device=env.unwrapped.device,
+                            stage=env.unwrapped.scene.stage,
+                            sync_usd_on_fabric_write=True,
+                        ),
+                    )
+                )
+        if visual_sync_views:
+            print("[INFO]: Syncing rigid-body car poses back to USD for GUI visualization.")
 
     def sync_car_visuals_to_usd():
         if not visual_sync_views:
             return
-        for car_id, view in enumerate(visual_sync_views):
-            car = env.unwrapped.scene[f"car_{car_id}"]
+        for car_name, view in visual_sync_views:
+            car = env.unwrapped.scene[car_name]
             view.set_world_poses(
                 positions=car.data.root_pos_w.detach(),
                 orientations=car.data.root_quat_w.detach(),
@@ -445,8 +493,10 @@ def main():
         env.unwrapped.sim.render()
 
     def project_cars_to_planar_pose():
-        for car_id in range(3):
-            car = env.unwrapped.scene[f"car_{car_id}"]
+        for car_name in car_names:
+            car = env.unwrapped.scene[car_name]
+            if not isinstance(car, RigidObject):
+                continue
             yaw = euler_xyz_from_quat(car.data.root_quat_w)[2]
             zeros = torch.zeros_like(yaw)
             root_pose_w = torch.cat(
@@ -469,10 +519,12 @@ def main():
     if args_cli.reward_guided:
         reward_guided_agent = RewardGuidedExplorer(
             env=env,
-            bounds=ARENA_BOUNDS,
+            car_names=car_names,
+            lidar_names=lidar_names,
+            bounds=arena_bounds,
             grid_resolution=args_cli.exploration_grid_resolution,
             robot_radius=1.0,
-            lidar_max_distance=LIDAR_MAX_DISTANCE,
+            lidar_max_distance=lidar_max_distance,
         )
         print("[INFO]: Using reward-guided exploration controller instead of random actions.")
     exploration_logger = None
@@ -480,10 +532,11 @@ def main():
         exploration_logger = ExplorationCsvLogger(
             env=env,
             csv_path=args_cli.exploration_csv,
-            bounds=ARENA_BOUNDS,
+            lidar_names=lidar_names,
+            bounds=arena_bounds,
             grid_resolution=args_cli.exploration_grid_resolution,
             robot_radius=1.0,
-            lidar_max_distance=LIDAR_MAX_DISTANCE,
+            lidar_max_distance=lidar_max_distance,
             log_interval_s=args_cli.exploration_log_interval,
             split_by_env=args_cli.split_exploration_csv_by_env,
         )
@@ -495,7 +548,10 @@ def main():
     else:
         print("[INFO]: Recomputing reward-guided actions every environment step.")
     actions = torch.zeros(env.action_space.shape, device=env.unwrapped.device)
-    demo_actions = torch.tensor([[1.0, 0.35, 1.0, -0.35, 0.8, 0.6]], device=env.unwrapped.device)
+    demo_actions = torch.zeros_like(actions)
+    for car_id in range(len(car_names)):
+        demo_actions[:, 2 * car_id] = 0.9
+        demo_actions[:, 2 * car_id + 1] = 0.35 if car_id % 2 == 0 else -0.35
     step_count = 0
     done = None
     try:
@@ -522,8 +578,8 @@ def main():
                     done = terminated | truncated
                 if args_cli.print_car_poses and step_count % max(1, round(1.0 / env.unwrapped.step_dt)) == 0:
                     pose_parts = []
-                    for car_id in range(3):
-                        car = env.unwrapped.scene[f"car_{car_id}"]
+                    for car_id, car_name in enumerate(car_names):
+                        car = env.unwrapped.scene[car_name]
                         pos = car.data.root_pos_w[0, :2].detach().cpu().numpy()
                         pose_parts.append(f"car_{car_id}=({pos[0]:+.2f}, {pos[1]:+.2f})")
                     print(f"[POSE step={step_count:06d}] " + " ".join(pose_parts), flush=True)

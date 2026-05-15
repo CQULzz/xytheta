@@ -38,3 +38,32 @@ v0.1-greedy-recovery
   - 5.0 秒：随机约 `21.025 m^2`，贪婪约 `23.441 m^2`。
   - 20.0 秒：随机约 `34.176 m^2`，贪婪约 `43.054 m^2`。
   - 44.5 秒：随机约 `50.370 m^2`，贪婪约 `73.240 m^2`。
+
+v0.2-offroad-terrain
+--------------------
+- 新增任务 ID：`Xytheta-Transa-Offroad-v0.0`。
+- 保留旧任务 ID：`Xytheta-Transa-v0.0`，作为平面基线环境，不直接覆盖。
+- 新增固定 15m x 15m 越野非结构化地形：
+  - 地图边界为 `[-7.5, 7.5] x [-7.5, 7.5]`。
+  - 使用 Isaac Lab `TerrainImporterCfg + TerrainGeneratorCfg` 生成。
+  - 固定地形 seed 为 `20260515`，保证每次运行地形一致。
+  - 地形包含随机起伏、块状乱石、离散障碍、锥形障碍和低台阶。
+- 新增项目内四轮差速车 URDF 资产：
+  - 文件：`source/xytheta_transa/xytheta_transa/assets/offroad_diff_drive_car.urdf`。
+  - 车辆是 articulation，不再是被直接写平面速度的简单刚体。
+  - 车辆保留重力、roll、pitch、轮地接触、打滑和翻车等物理现象。
+- 新增 `DifferentialWheelVelocityAction`：
+  - 输入仍然是 `[forward_velocity, yaw_rate]`。
+  - 内部根据轮半径和轮距换算左右轮速度目标。
+- Offroad 环境改为单车 LiDAR：
+  - LiDAR 为 16 channels。
+  - 垂直视场为 `[-15°, 15°]`。
+  - 水平视场为 360°。
+  - 最大扫描距离为 `10m`。
+  - LiDAR 目标包含 `/World/ground` 和 offroad 静态障碍。
+- `random_agent.py` 不再硬编码三辆车：
+  - 会从环境配置中读取 `car_names`、`lidar_names`、`arena_bounds` 和 `lidar_max_distance`。
+  - 平面刚体车仍然会执行旧的平面投影，保持 v0.0 稳定。
+  - articulation 越野车不会执行平面投影，因此可以真实倾斜、颠簸和翻车。
+- CSV 记录在 offroad 环境下只记录单车 `car_id=0` 的已探索面积。
+- 当前 offroad 评价指标仍然只看单车已探索面积随时间变化，暂时不记录完整训练数据字段。

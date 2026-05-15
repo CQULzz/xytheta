@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 import torch
 
-from isaaclab.assets import RigidObject
+from isaaclab.assets import Articulation, RigidObject
 from isaaclab.managers import SceneEntityCfg
 from isaaclab.sensors import RayCaster
 from isaaclab.sim.views import XformPrimView
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 def _root_pose_w(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> tuple[torch.Tensor, torch.Tensor]:
     asset = env.scene[asset_cfg.name]
-    if isinstance(asset, RigidObject):
+    if isinstance(asset, (Articulation, RigidObject)):
         return asset.data.root_pos_w, asset.data.root_quat_w
     if isinstance(asset, XformPrimView):
         return asset.get_world_poses()
@@ -39,7 +39,7 @@ def planar_pose(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor
 def planar_velocity(env: ManagerBasedEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
     """Return planar body velocity as ``forward_velocity, lateral_velocity, yaw_rate``."""
     asset = env.scene[asset_cfg.name]
-    if isinstance(asset, RigidObject):
+    if isinstance(asset, (Articulation, RigidObject)):
         lin_vel_b = quat_apply_inverse(asset.data.root_quat_w, asset.data.root_lin_vel_w)
         return torch.cat((lin_vel_b[:, :2], asset.data.root_ang_vel_w[:, 2].unsqueeze(-1)), dim=-1)
     return torch.zeros(env.num_envs, 3, device=env.device)

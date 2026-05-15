@@ -6,15 +6,19 @@ This project follows a lightweight Keep a Changelog style.
 
 ### Added
 
-- None.
+- Added `Xytheta-Transa-Offroad-v0.0` with fixed generated 15 m x 15 m off-road terrain.
+- Added a project-local four-wheel differential-drive URDF car asset.
+- Added `DifferentialWheelVelocityAction` for articulation wheel velocity control.
+- Added 16-channel off-road LiDAR over terrain and irregular obstacles.
 
 ### Changed
 
-- None.
+- Updated `scripts/random_agent.py` to discover cars, LiDAR sensors, bounds, and LiDAR range from each task config.
+- Updated README and `VerDairy` with off-road environment usage and version notes.
 
 ### Fixed
 
-- None.
+- Kept planar projection logic limited to old rigid-body cars so articulation vehicles can roll and pitch on terrain.
 
 ## [v0.0] - 2026-05-12
 

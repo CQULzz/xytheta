@@ -353,6 +353,10 @@ class XythetaTransaEnvCfg(ManagerBasedRLEnvCfg):
     events: EventCfg = EventCfg()
     rewards: RewardsCfg = RewardsCfg()
     terminations: TerminationsCfg = TerminationsCfg()
+    arena_bounds: tuple[float, float, float, float] = ARENA_BOUNDS
+    lidar_max_distance: float = LIDAR_MAX_DISTANCE
+    car_names: tuple[str, ...] = ("car_0", "car_1", "car_2")
+    lidar_names: tuple[str, ...] = ("lidar_0", "lidar_1", "lidar_2")
 
     def __post_init__(self) -> None:
         self.decimation = 2
