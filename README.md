@@ -25,7 +25,7 @@ This repository contains an Isaac Lab extension for simulating multiple planar c
   - Terrain includes rough height fields, rocks, discrete obstacles, cones, and low stairs.
   - 16-channel LiDAR scans terrain and obstacles.
   - Uses single-car exploration area as the current data-collection metric.
-- Exploration CSV logging in `scripts/random_agent.py`.
+- Exploration CSV logging in `scripts/exploration_agent.py`.
 - Optional per-environment CSV splitting for vectorized runs.
 - Version notes in `VerDairy`.
 
@@ -66,7 +66,7 @@ python scripts/list_envs.py
 Run the current environment with random actions:
 
 ```bash
-python scripts/random_agent.py \
+python scripts/exploration_agent.py \
   --task Xytheta-Transa-v0.0 \
   --num_envs 1 \
   --disable_fabric
@@ -75,29 +75,29 @@ python scripts/random_agent.py \
 Run the current environment with reward-guided exploration:
 
 ```bash
-python scripts/random_agent.py \
+python scripts/exploration_agent.py \
   --task Xytheta-Transa-v0.0 \
   --num_envs 1 \
   --disable_fabric \
-  --reward_guided \
+  --greedy \
   --exploration_csv logs/exploration/v0_0_reward_guided.csv
 ```
 
 Run the off-road data-collection environment:
 
 ```bash
-python scripts/random_agent.py \
+python scripts/exploration_agent.py \
   --task Xytheta-Transa-Offroad-v0.0 \
   --num_envs 1 \
   --disable_fabric \
-  --reward_guided \
+  --greedy \
   --exploration_csv logs/exploration/offroad_demo.csv
 ```
 
 Run a short off-road headless smoke test:
 
 ```bash
-python scripts/random_agent.py \
+python scripts/exploration_agent.py \
   --task Xytheta-Transa-Offroad-v0.0 \
   --num_envs 1 \
   --headless \
@@ -108,7 +108,7 @@ python scripts/random_agent.py \
 Run a headless short smoke test:
 
 ```bash
-python scripts/random_agent.py \
+python scripts/exploration_agent.py \
   --task Xytheta-Transa-v0.0 \
   --num_envs 1 \
   --headless \
@@ -119,7 +119,7 @@ python scripts/random_agent.py \
 Split exploration CSV output by environment:
 
 ```bash
-python scripts/random_agent.py \
+python scripts/exploration_agent.py \
   --task Xytheta-Transa-v0.0 \
   --num_envs 8 \
   --disable_fabric \
@@ -128,6 +128,8 @@ python scripts/random_agent.py \
 ```
 
 This creates files such as `my_run_env0.csv`, `my_run_env1.csv`, and so on.
+
+`scripts/random_agent.py` is kept only as a backward-compatible wrapper for older commands.
 
 ## Directory Structure
 

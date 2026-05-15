@@ -11,6 +11,7 @@ v0.0
 - 加入出界终止惩罚。
 - `random_agent.py` 支持 `--reward_guided`，可以运行一个简单的贪婪探索控制器。
 - `random_agent.py` 支持探索面积 CSV 记录；绘图和实验输出放在 `logs/` 下，不提交到 GitHub。
+- 后续版本中该脚本已改名为 `exploration_agent.py`，`random_agent.py` 仅作为旧命令兼容入口保留。
 
 v0.1-greedy-recovery
 --------------------
@@ -65,5 +66,9 @@ v0.2-offroad-terrain
   - 会从环境配置中读取 `car_names`、`lidar_names`、`arena_bounds` 和 `lidar_max_distance`。
   - 平面刚体车仍然会执行旧的平面投影，保持 v0.0 稳定。
   - articulation 越野车不会执行平面投影，因此可以真实倾斜、颠簸和翻车。
+- 主运行脚本改名为 `exploration_agent.py`：
+  - 原因是它已经不只是随机策略脚本，而是统一负责随机探索、贪婪探索、demo motion 和 CSV 记录。
+  - 新推荐命令使用 `python scripts/exploration_agent.py ... --greedy`。
+  - `random_agent.py` 暂时保留为兼容入口，旧命令仍然可以转发运行。
 - CSV 记录在 offroad 环境下只记录单车 `car_id=0` 的已探索面积。
 - 当前 offroad 评价指标仍然只看单车已探索面积随时间变化，暂时不记录完整训练数据字段。

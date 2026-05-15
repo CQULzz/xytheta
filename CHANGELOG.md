@@ -6,14 +6,18 @@ This project follows a lightweight Keep a Changelog style.
 
 ### Added
 
+- Added `scripts/exploration_agent.py` as the clearer rollout entry point.
 - Added `Xytheta-Transa-Offroad-v0.0` with fixed generated 15 m x 15 m off-road terrain.
 - Added a project-local four-wheel differential-drive URDF car asset.
 - Added `DifferentialWheelVelocityAction` for articulation wheel velocity control.
 - Added 16-channel off-road LiDAR over terrain and irregular obstacles.
+- Added `--greedy` as the preferred name for the greedy exploration controller.
 
 ### Changed
 
-- Updated `scripts/random_agent.py` to discover cars, LiDAR sensors, bounds, and LiDAR range from each task config.
+- Renamed the main rollout script from `scripts/random_agent.py` to `scripts/exploration_agent.py`.
+- Kept `scripts/random_agent.py` as a backward-compatible wrapper for older commands.
+- Updated `scripts/exploration_agent.py` to discover cars, LiDAR sensors, bounds, and LiDAR range from each task config.
 - Updated README and `VerDairy` with off-road environment usage and version notes.
 
 ### Fixed
